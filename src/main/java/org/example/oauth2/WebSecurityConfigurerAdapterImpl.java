@@ -2,6 +2,7 @@ package org.example.oauth2;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.User;
@@ -12,16 +13,17 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(securedEnabled = true, jsr250Enabled = true, prePostEnabled = true)
 public class WebSecurityConfigurerAdapterImpl {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(authz -> authz
                     .requestMatchers("/cities").permitAll()
+                    .requestMatchers("/secure/**").authenticated()
                     .anyRequest().authenticated()
             )
             .formLogin(form -> form
-                    .defaultSuccessUrl("/persons", true)
                     .permitAll()
             )
             .logout(logout -> logout.permitAll())
@@ -32,18 +34,36 @@ public class WebSecurityConfigurerAdapterImpl {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        UserDetails user = User.withDefaultPasswordEncoder()
-                               .username("user")
-                               .password("password")
-                               .roles("USER")
-                               .build();
+        UserDetails readUser = User.withDefaultPasswordEncoder()
+                                   .username("reader")
+                                   .password("password")
+                                   .roles("READ")
+                                   .build();
 
-        UserDetails admin = User.withDefaultPasswordEncoder()
-                                .username("admin")
-                                .password("admin")
-                                .roles("ADMIN")
-                                .build();
+        UserDetails writeUser = User.withDefaultPasswordEncoder()
+                                    .username("writer")
+                                    .password("password")
+                                    .roles("WRITE")
+                                    .build();
 
-        return new InMemoryUserDetailsManager(user, admin);
+        UserDetails deleteUser = User.withDefaultPasswordEncoder()
+                                     .username("deleter")
+                                     .password("password")
+                                     .roles("DELETE")
+                                     .build();
+
+        UserDetails multiRoleUser = User.withDefaultPasswordEncoder()
+                                        .username("multi")
+                                        .password("password")
+                                        .roles("READ", "WRITE")
+                                        .build();
+
+        UserDetails adminUser = User.withDefaultPasswordEncoder()
+                                    .username("admin")
+                                    .password("password")
+                                    .roles("READ", "WRITE", "DELETE")
+                                    .build();
+
+        return new InMemoryUserDetailsManager(readUser, writeUser, deleteUser, multiRoleUser, adminUser);
     }
 }
